@@ -1,0 +1,44 @@
+#!/bin/sh
+# devtmpfs does not get automounted for initramfs
+/bin/mount -t devtmpfs devtmpfs /dev
+exec 0</dev/console
+exec 1>/dev/console
+exec 2>/dev/console
+
+#FAQ de la catedra
+/bin/mount -t proc proc /proc
+/bin/mount -o remount,rw /
+/bin/mkdir -p /dev/pts /dev/shm
+/bin/mount -a
+/sbin/swapon -a
+/bin/ln -sf /proc/self/fd /dev/fd
+/bin/ln -sf /proc/self/fd/0 /dev/stdin
+/bin/ln -sf /proc/self/fd/1 /dev/stdout
+/bin/ln -sf /proc/self/fd/2 /dev/stderr
+/bin/hostname -F /etc/hostname
+
+# Levantar argumentos para montar el filesystem
+for i in $(cat /proc/cmdline); do
+case $i in
+        root=*)
+                DEVICE="${i#*=}"
+                ;;
+        *)
+                shift
+                ;;
+esac
+done
+
+echo "---------------"
+echo "DEVICE = ${DEVICE}"
+echo "---------------"
+mkdir -p /mnt/root
+/bin/mount -t ext4 ${DEVICE} /mnt/root
+
+mkdir -p /mnt/root/dev
+/bin/mount --move /dev /mnt/root/dev # Si no está, switch_root no encuentra nada en `/dev`
+
+exec switch_root /mnt/root /sbin/init "$@"
+
+
+#exec /sbin/init "$@"
