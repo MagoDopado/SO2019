@@ -1,0 +1,38 @@
+USERNAME=
+PASSWORD=
+
+
+Vagrant.configure("2") do |config|
+
+  config.vm.box = "hauptj/CentOS74"
+  # Optional if you wish to use root as the default user
+  # config.ssh.username = "root"
+
+  # Optional, SMB folder sharing
+  # If you wish to disable SMB share
+  # config.vm.synced_folder ".", "/vagrant", disabled: true
+
+  # Configure SMB folder sharing
+  config.vm.synced_folder '.', '/vagrant', {
+    type: 'smb', mount_options: ['vers=3.0'],
+    smb_username: USERNAME,
+    smb_password: PASSWORD
+  }
+
+  config.vm.provider "hyperv" do |hv|
+    hv.vmname = "CentOS74"
+    # With nested virtualization, at least 2 CPUs are needed.
+    hv.cpus = "2"
+    # With nested virtualization, at least 4GB of memory is needed.
+    hv.memory = "2048"
+  end
+  # Optional, allows you to provision with Ansible locally
+  # config.vm.provision "shell", inline: <<-SHELL
+  # yum update -y
+  # git clone ...
+  # ansible-playbook clone_dir/playbook.yml
+  config.vm.provision 'shell', privileged: true, inline:
+  "yum install qemu-kvm libvirt libvirt-python libguestfs-tools \
+   virt-install qemu && \
+   ln -s `which qemu-system-x86_64` /usr/bin/kvm"
+end
